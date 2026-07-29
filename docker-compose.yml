@@ -4,7 +4,7 @@ services:
 
   fe-olog-service:
     #image: ghcr.io/olog/org-phoebus-service-olog:latest
-    build: /home/alexa/nsls2/phoebus-olog
+    build: https://github.com/NSLS2/phoebus-olog.git
     ports:
       - "8080:8080"
       - "8181:8181"
