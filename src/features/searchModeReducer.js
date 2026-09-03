@@ -3,16 +3,17 @@ import { useSelector } from "react-redux";
 
 export const SEARCH_MODES = {
   QUERY: "query",
-  AI: "ai"
+  AI: "ai",
+  AI_ANALYSIS: "ai_analysis"
 };
 
-const AI_INTRO_KEY = "olog-ai-intro-seen";
+export const isAIMode = (mode) =>
+  mode === SEARCH_MODES.AI || mode === SEARCH_MODES.AI_ANALYSIS;
 
 export const defaultSearchModeState = {
   mode: SEARCH_MODES.QUERY,
-  aiAnalysisEnabled: false,
   aiQuery: "",
-  aiIntroSeen: window.localStorage.getItem(AI_INTRO_KEY) === "true"
+  aiIntroDismissed: false
 };
 
 export const searchModeSlice = createSlice({
@@ -21,26 +22,25 @@ export const searchModeSlice = createSlice({
   reducers: {
     setSearchMode: (state, action) => ({
       ...state,
-      mode: action.payload
+      mode: action.payload,
+      aiIntroDismissed: false
     }),
-    toggleAiAnalysis: (state) => ({
-      ...state,
-      aiAnalysisEnabled: !state.aiAnalysisEnabled
-    }),
-    setAiQuery: (state, action) => {
-      if (action.payload) {
-        window.localStorage.setItem(AI_INTRO_KEY, "true");
-      }
+    toggleAiAnalysis: (state) => {
+       if (!isAIMode(state.mode)) return state;
       return {
         ...state,
-        aiQuery: action.payload,
-        aiIntroSeen: state.aiIntroSeen || Boolean(action.payload)
+        mode:
+          state.mode === SEARCH_MODES.AI_ANALYSIS
+            ? SEARCH_MODES.AI
+            : SEARCH_MODES.AI_ANALYSIS
       };
     },
-    dismissAiIntro: (state) => {
-      window.localStorage.setItem(AI_INTRO_KEY, "true");
-      return { ...state, aiIntroSeen: true };
-    }
+    setAiQuery: (state, action) => ({
+        ...state,
+      aiQuery: action.payload,
+      aiIntroDismissed: state.aiIntroDismissed || Boolean(action.payload)
+    }),
+    dismissAiIntro: (state) => ({ ...state, aiIntroDismissed: true })
   }
 });
 

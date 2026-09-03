@@ -3,14 +3,14 @@ import { Alert, Box, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import MarkdownIt from "markdown-it";
 import { ologApi } from "api/ologApi";
-import { useSearchMode } from "features/searchModeReducer";
+import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
 
 const md = new MarkdownIt();
 
 export const AIAnalysisPanel = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { aiAnalysisEnabled } = useSearchMode();
+  const { mode } = useSearchMode();
 
   // reads the shared mutation state — AISearchResults triggers it,
   // this component only observes via the same fixedCacheKey
@@ -39,7 +39,7 @@ export const AIAnalysisPanel = () => {
     }
   };
 
-  if (!aiAnalysisEnabled) return null;
+  if (mode !== SEARCH_MODES.AI_ANALYSIS) return null;
   if (!isLoading && !error && !analysisHtml) return null;
 
   return (

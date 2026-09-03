@@ -6,21 +6,21 @@ import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { AIIntro } from "components/search/AIIntro";
 import {
-  SEARCH_MODES,
+  isAIMode,
   dismissAiIntro,
   useSearchMode
 } from "features/searchModeReducer";
 
 const LogDetailsContainer = ({ id }) => {
   const dispatch = useDispatch();
-  const { mode, aiIntroSeen } = useSearchMode();
-  const isAiMode = mode === SEARCH_MODES.AI;
+  const { mode, aiIntroDismissed } = useSearchMode();
+  const isAiMode = isAIMode(mode);
 
   useEffect(() => {
-    if (id && !aiIntroSeen) {
+    if (id && isAiMode && !aiIntroDismissed) {
       dispatch(dismissAiIntro());
     }
-  }, [id, aiIntroSeen, dispatch]);
+  }, [id, isAiMode, aiIntroDismissed, dispatch]);
 
   return (
     <Stack sx={{ minHeight: 0, minWidth: 0, overflow: "auto" }}>
@@ -30,7 +30,7 @@ const LogDetailsContainer = ({ id }) => {
           id={id}
           renderLog={({ log }) => <LogDetailsWithReplies log={log} />}
         />
-      ) : isAiMode && !aiIntroSeen ? (
+      ) : isAiMode && !aiIntroDismissed ? (
         <AIIntro onDismiss={() => dispatch(dismissAiIntro())} />
       ) : (
         <Stack p={4}>

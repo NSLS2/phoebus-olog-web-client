@@ -4,7 +4,7 @@ import LogDetailsContainer from "src/components/log/LogDetails/LogDetailsContain
 import { SearchResults } from "components/search";
 import { AISearchResults } from "components/search/AISearchResults";
 import {
-  SEARCH_MODES,
+  isAIMode,
   useSearchMode
 } from "features/searchModeReducer";
 
@@ -40,7 +40,7 @@ const SearchView = styled(({ className }) => {
           sx={{ borderColor: "#E2E8EE" }}
           orientation="vertical"
         />
-        {mode === SEARCH_MODES.AI ? <AISearchResults /> : <SearchResults />}
+        {isAIMode(mode) ? <AISearchResults /> : <SearchResults />}
         <Divider
           sx={{ borderColor: "#E2E8EE" }}
           orientation="vertical"

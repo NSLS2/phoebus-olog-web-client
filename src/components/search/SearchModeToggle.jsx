@@ -1,10 +1,10 @@
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import { SEARCH_MODES } from "features/searchModeReducer";
+import { SEARCH_MODES, isAIMode } from "features/searchModeReducer";
 
 export const SearchModeToggle = ({ mode, onChange }) => (
   <ToggleButtonGroup
-    value={mode}
+    value={isAIMode(mode) ? SEARCH_MODES.AI : mode}
     exclusive
     aria-label="search mode"
     onChange={(_, newMode) => {

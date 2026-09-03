@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ologApi } from "api/ologApi";
-import { useSearchMode } from "features/searchModeReducer";
+import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
 import { useEnhancedSearchParams } from "src/hooks/useEnhancedSearchParams";
 
 const formatDate = (ms) =>
@@ -16,7 +16,8 @@ const formatDate = (ms) =>
 export const AISearchResults = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { aiQuery, aiAnalysisEnabled } = useSearchMode();
+  const { aiQuery, mode } = useSearchMode();
+  const analysisEnabled = mode === SEARCH_MODES.AI_ANALYSIS;
   const { searchParams } = useEnhancedSearchParams();
 
   const payload = useMemo(
@@ -46,10 +47,10 @@ export const AISearchResults = () => {
   // request analysis whenever it's enabled and fresh results arrive;
   // AIAnalysisPanel (right side) renders the outcome via the shared cache key
   useEffect(() => {
-    if (aiAnalysisEnabled && data?.hits?.length) {
+    if (analysisEnabled && data?.hits?.length) {
       triggerAnalyze({ query: aiQuery, hits: data.hits });
     }
-  }, [aiAnalysisEnabled, data, aiQuery, triggerAnalyze]);
+  }, [analysisEnabled, data, aiQuery, triggerAnalyze]);
 
   const navigateToEntry = (logId) =>
     navigate(`/logs/${logId}${location.search}`);

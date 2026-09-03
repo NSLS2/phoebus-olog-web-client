@@ -22,9 +22,22 @@ export const AISelected = () => (
   <SearchModeToggle mode={SEARCH_MODES.AI} onChange={() => {}} />
 );
 
+export const AIAnalysisSelected = () => (
+  <SearchModeToggle mode={SEARCH_MODES.AI_ANALYSIS} onChange={() => {}} />
+);
+
 export const AnalysisSwitch = () => {
-  const [enabled, setEnabled] = useState(false);
+  const [mode, setMode] = useState(SEARCH_MODES.AI);
   return (
-    <AIAnalysisSwitch enabled={enabled} onToggle={() => setEnabled(!enabled)} />
+    <AIAnalysisSwitch
+      enabled={mode === SEARCH_MODES.AI_ANALYSIS}
+      onToggle={() =>
+        setMode(
+          mode === SEARCH_MODES.AI_ANALYSIS
+            ? SEARCH_MODES.AI
+            : SEARCH_MODES.AI_ANALYSIS
+        )
+      }
+    />
   );
 };

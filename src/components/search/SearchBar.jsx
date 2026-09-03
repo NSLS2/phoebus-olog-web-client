@@ -6,6 +6,7 @@ import { SearchModeToggle } from "components/search/SearchModeToggle";
 import { AIAnalysisSwitch } from "components/search/AIAnalysisSwitch";
 import {
   SEARCH_MODES,
+  isAIMode,
   setSearchMode,
   toggleAiAnalysis,
   useSearchMode
@@ -13,8 +14,8 @@ import {
 
 const SearchBar = ({ actions }) => {
   const dispatch = useDispatch();
-  const { mode, aiAnalysisEnabled } = useSearchMode();
-  const isAiMode = mode === SEARCH_MODES.AI;
+  const { mode } = useSearchMode();
+  const isAiMode = isAIMode(mode); //helper
 
   return (
     <Stack gap={0.5} sx={{ flex: 3 }}>
@@ -23,7 +24,7 @@ const SearchBar = ({ actions }) => {
         {isAiMode ? <AISearch /> : <SimpleSearch />}
         {isAiMode && (
           <AIAnalysisSwitch
-            enabled={aiAnalysisEnabled}
+            enabled={mode === SEARCH_MODES.AI_ANALYSIS}
             onToggle={() => dispatch(toggleAiAnalysis())}
           />
         )}
