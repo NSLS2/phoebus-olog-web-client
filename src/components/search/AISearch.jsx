@@ -16,7 +16,6 @@ const AISearch = () => {
   const questionValue = watch("question");
 
   const onSubmit = () => {
-    console.log("ai submit", getValues());
     const { question } = getValues();
     dispatch(setAiQuery(question ?? ""));
   };

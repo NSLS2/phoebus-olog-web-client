@@ -26,7 +26,6 @@ const SimpleSearch = () => {
   }, [searchParams, toQueryString, setValue]);
 
   const onSubmit = () => {
-    console.log("simple search submit fired", getValues());
     const { query } = getValues();
 
     if (!query) {

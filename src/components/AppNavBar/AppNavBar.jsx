@@ -40,7 +40,6 @@ import { InternalButtonLink } from "components/shared/Link";
 import { useShowLogin, useShowLogout, useUser } from "features/authSlice";
 import LoginDialog from "components/LoginLogout/LoginDialog";
 import LogoutDialog from "components/LoginLogout/LogoutDialog";
-//import SimpleSearch from "components/search/SimpleSearch";
 import SearchBar from "components/search/SearchBar";
 import { SortToggleButton } from "components/search/SortToggleButton";
 import { toggleSortOrder } from "features/searchPageParamsReducer";

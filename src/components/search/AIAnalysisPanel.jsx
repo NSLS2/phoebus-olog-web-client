@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Alert, Box, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import MarkdownIt from "markdown-it";
+import DOMPurify from "dompurify";
 import { ologApi } from "api/ologApi";
 import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
 
@@ -26,11 +27,13 @@ export const AIAnalysisPanel = () => {
       const id = hits[Number(num) - 1]?.metadata?.id;
       return id ? `[${match}](#entry-${id})` : match;
     });
-    return md.render(linked);
+    return DOMPurify.sanitize(md.render(linked));
   }, [data]);
 
   const onAnalysisClick = (e) => {
-    const anchor = e.target.closest("a");
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest("a");
     const href = anchor?.getAttribute("href") ?? "";
     if (href.startsWith("#entry-")) {
       e.preventDefault();
