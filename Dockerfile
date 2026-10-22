@@ -1,4 +1,4 @@
-FROM node:22.13.1-alpine AS builder
+FROM node:22-alpine AS builder
 
 LABEL maintainer="te-hung.tseng@ess.eu"
 WORKDIR /usr/src/phoebus-olog-web-client
@@ -6,7 +6,7 @@ COPY . .
 RUN npm ci
 RUN npm run build --force
 
-FROM nginx:1.23.1-alpine
+FROM nginx:1.31-alpine
 
 COPY docker/default.conf /etc/nginx/conf.d
 COPY --from=builder /usr/src/phoebus-olog-web-client/build /usr/share/nginx/html/
