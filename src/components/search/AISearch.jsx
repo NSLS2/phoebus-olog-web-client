@@ -1,23 +1,36 @@
+import { useEffect } from "react";
 import { IconButton, InputAdornment, Stack } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import ClearIcon from "@mui/icons-material/Clear";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { ologApi, TagTypes } from "api/ologApi";
 import { TextInput } from "components/shared/input/TextInput";
-import { setAiQuery, useSearchMode } from "features/searchModeReducer";
+import { useSearchMode } from "features/searchModeReducer";
 
 const AISearch = () => {
   const dispatch = useDispatch();
-  const { aiQuery } = useSearchMode();
+  const { aiQuery, setAiQuery } = useSearchMode();
   const { control, handleSubmit, setValue, getValues, watch } = useForm({
     defaultValues: { question: aiQuery }
   });
 
   const questionValue = watch("question");
 
+  // follow the URL, e.g. on Back or when the question is trimmed
+  useEffect(() => {
+    setValue("question", aiQuery);
+  }, [aiQuery, setValue]);
+
   const onSubmit = () => {
-    const { question } = getValues();
-    dispatch(setAiQuery(question ?? ""));
+    const question = (getValues().question ?? "").trim();
+    setValue("question", question);
+    if (question && question === aiQuery) {
+      // asking the same question again runs the search again
+      dispatch(ologApi.util.invalidateTags([TagTypes.AiSearch]));
+    } else {
+      setAiQuery(question);
+    }
   };
 
   return (
@@ -52,7 +65,7 @@ const AISearch = () => {
                 <IconButton
                   onClick={() => {
                     setValue("question", "");
-                    dispatch(setAiQuery(""));
+                    setAiQuery("");
                   }}
                   sx={{
                     "&:hover": { backgroundColor: "transparent" },

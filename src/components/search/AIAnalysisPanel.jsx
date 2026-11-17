@@ -1,52 +1,48 @@
 import { useMemo } from "react";
-import { Alert, Box, Typography } from "@mui/material";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import MarkdownIt from "markdown-it";
-import DOMPurify from "dompurify";
-import { ologApi } from "api/ologApi";
-import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
-
-const md = new MarkdownIt();
+import {
+  aiErrorMessage,
+  isRetryable,
+  useAiSearch
+} from "components/search/useAiSearch";
+import { renderAnalysis } from "components/search/renderAnalysis";
 
 export const AIAnalysisPanel = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { mode } = useSearchMode();
+  const { analysis, analysisRequested } = useAiSearch();
+  const { currentData, isFetching, error, refetch } = analysis;
 
-  // reads the shared mutation state — AISearchResults triggers it,
-  // this component only observes via the same fixedCacheKey
-  const [, { data, isLoading, error }] =
-    ologApi.endpoints.aiAnalyze.useMutation({
-      fixedCacheKey: "ai-analysis"
-    });
+  const analysisHtml = useMemo(
+    () =>
+      currentData?.analysis
+        ? renderAnalysis(currentData.analysis, currentData.hits ?? [])
+        : null,
+    [currentData]
+  );
 
-  const analysisHtml = useMemo(() => {
-    if (!data?.analysis) return null;
-    const hits = data.hits ?? [];
-    const linked = data.analysis.replace(/#(\d+)/g, (match, num) => {
-      const id = hits[Number(num) - 1]?.metadata?.id;
-      return id ? `[${match}](#entry-${id})` : match;
-    });
-    return DOMPurify.sanitize(md.render(linked));
-  }, [data]);
-
+  // a citation opens the entry it cites, like clicking that search result
   const onAnalysisClick = (e) => {
     const target = e.target;
-    if (!(target instanceof Element)) return;
-    const anchor = target.closest("a");
-    const href = anchor?.getAttribute("href") ?? "";
-    if (href.startsWith("#entry-")) {
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const entryId = target.closest("a[data-entry-id]")?.dataset.entryId;
+    if (entryId) {
       e.preventDefault();
-      // exactly what clicking a result does: route to /logs/:id
-      navigate(`/logs/${href.replace("#entry-", "")}${location.search}`);
+      navigate(`/logs/${encodeURIComponent(entryId)}${location.search}`);
     }
   };
 
-  if (mode !== SEARCH_MODES.AI_ANALYSIS) return null;
-  if (!isLoading && !error && !analysisHtml) return null;
+  if (!analysisRequested) {
+    return null;
+  }
 
   return (
     <Box
+      component="section"
+      aria-label="AI analysis"
       sx={{
         m: 2,
         p: 2,
@@ -54,19 +50,45 @@ export const AIAnalysisPanel = () => {
         borderRadius: "8px",
         border: "1px solid #d6e7f2",
         flexShrink: 0,
+        // leave room below for the entry a citation opens
+        maxHeight: "40vh",
+        overflow: "auto",
         "& a": { color: "#0099dc", fontWeight: 600 }
       }}
     >
-      <Typography fontWeight={600} gutterBottom>
+      <Typography
+        fontWeight={600}
+        gutterBottom
+      >
         Analysis
       </Typography>
-      {isLoading && (
-        <Typography variant="body2" color="text.secondary">
+      {isFetching && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
           Analyzing results…
         </Typography>
       )}
-      {error && <Alert severity="warning">Analysis failed</Alert>}
-      {analysisHtml && (
+      {error && !isFetching && (
+        <Alert
+          severity="warning"
+          action={
+            isRetryable(error) ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            ) : null
+          }
+        >
+          {aiErrorMessage(error, "AI analysis")}
+        </Alert>
+      )}
+      {analysisHtml && !isFetching && (
         <Box
           onClick={onAnalysisClick}
           sx={{ fontSize: "0.9rem", "& p": { my: 0.5 } }}

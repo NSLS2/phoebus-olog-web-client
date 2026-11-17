@@ -14,6 +14,18 @@ const options = {
   }
 };
 
+/**
+ * URL params that hold the AI search state (mode, question, analysis switch).
+ * They are not log search filters: they are left out of searchParams and
+ * setSearchParams keeps them as they are.
+ */
+export const AI_PARAMS = {
+  MODE: "searchMode",
+  QUERY: "aiQuery",
+  ANALYSIS: "aiAnalysis"
+};
+const AI_PARAM_KEYS = Object.values(AI_PARAMS);
+
 export function withoutParams(searchParams) {
   const copy = { ...searchParams };
   delete copy.query;
@@ -60,15 +72,28 @@ export const useEnhancedSearchParams = () => {
   }, []);
 
   const searchParams = useMemo(() => {
+    const filterParams = new URLSearchParams(params);
+    AI_PARAM_KEYS.forEach((key) => filterParams.delete(key));
     return queryStringParser.parse(
-      decodeURIComponent(params.toString()),
+      decodeURIComponent(filterParams.toString()),
       options
     );
   }, [params]);
 
   const setSearchParams = useCallback(
     (newParams) => {
-      setParams(toQueryString(removeEmptyKeys(newParams)));
+      setParams((prev) => {
+        const next = new URLSearchParams(
+          toQueryString(removeEmptyKeys(newParams))
+        );
+        AI_PARAM_KEYS.forEach((key) => {
+          next.delete(key);
+          if (prev.has(key)) {
+            next.set(key, prev.get(key));
+          }
+        });
+        return next;
+      });
     },
     [setParams, toQueryString]
   );

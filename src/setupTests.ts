@@ -1,5 +1,6 @@
 import { beforeAll, afterEach, afterAll } from "vitest";
 import { server } from "./mocks/server";
+import "./test-utils/nativeAbortController";
 
 beforeAll(() => {
   // Enable the mocking in tests.

@@ -1,63 +1,42 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import {
   Alert,
+  Button,
   LinearProgress,
   Stack,
   Typography
 } from "@mui/material";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ologApi } from "api/ologApi";
-import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
-import { useEnhancedSearchParams } from "src/hooks/useEnhancedSearchParams";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  aiErrorMessage,
+  isRetryable,
+  useAiSearch
+} from "components/search/useAiSearch";
 
-const formatDate = (ms) =>
-  ms ? new Date(Number(ms)).toLocaleString() : null;
+const formatDate = (ms) => (ms ? new Date(Number(ms)).toLocaleString() : null);
 
 export const AISearchResults = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { aiQuery, mode } = useSearchMode();
-  const analysisEnabled = mode === SEARCH_MODES.AI_ANALYSIS;
-  const { searchParams } = useEnhancedSearchParams();
+  const { id: currentLogEntryId } = useParams();
+  const { aiQuery, search, hits } = useAiSearch();
+  const { isFetching, error, refetch } = search;
+  const selectedRef = useRef(null);
 
-  const payload = useMemo(
-    () => ({
-      query: aiQuery,
-      start: searchParams.start,
-      end: searchParams.end,
-      logbooks: searchParams.logbooks,
-      tags: searchParams.tags,
-      level: searchParams.level,
-      owner: searchParams.owner,
-      title: searchParams.title,
-      desc: searchParams.desc
-    }),
-    [aiQuery, searchParams]
-  );
-
-  const { data, isFetching, error } = ologApi.endpoints.aiSearch.useQuery(
-    payload,
-    { skip: !aiQuery }
-  );
-
-  const [triggerAnalyze] = ologApi.endpoints.aiAnalyze.useMutation({
-    fixedCacheKey: "ai-analysis"
-  });
-
-  // request analysis whenever it's enabled and fresh results arrive;
-  // AIAnalysisPanel (right side) renders the outcome via the shared cache key
+  // bring the open entry into view, e.g. after following a citation
   useEffect(() => {
-    if (analysisEnabled && data?.hits?.length) {
-      triggerAnalyze({ query: aiQuery, hits: data.hits });
-    }
-  }, [analysisEnabled, data, aiQuery, triggerAnalyze]);
+    selectedRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [currentLogEntryId, hits]);
 
   const navigateToEntry = (logId) =>
     navigate(`/logs/${logId}${location.search}`);
 
   if (!aiQuery) {
     return (
-      <Stack p={4} sx={{ backgroundColor: "#fafafa" }}>
+      <Stack
+        p={4}
+        sx={{ backgroundColor: "#fafafa" }}
+      >
         <Typography color="text.secondary">
           Ask a question above to search with AI
         </Typography>
@@ -75,52 +54,85 @@ export const AISearchResults = () => {
       }}
     >
       {isFetching && <LinearProgress />}
-      {error && (
-        <Alert severity="error" sx={{ m: 2 }}>
-          AI search failed — please try again
+      {error && !isFetching && (
+        <Alert
+          severity="error"
+          sx={{ m: 2 }}
+          action={
+            isRetryable(error) ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            ) : null
+          }
+        >
+          {aiErrorMessage(error, "AI search")}
         </Alert>
       )}
 
-      {!isFetching && data?.hits?.length === 0 && (
-        <Typography p={4} color="text.secondary">
+      {!isFetching && !error && hits?.length === 0 && (
+        <Typography
+          p={4}
+          color="text.secondary"
+        >
           No results found
         </Typography>
       )}
 
-      {data?.hits?.map((hit, i) => (
-        <Stack
-          key={hit.metadata?.id ?? i}
-          onClick={() => hit.metadata?.id && navigateToEntry(hit.metadata.id)}
-          p={2}
-          gap={0.5}
-          sx={{
-            cursor: "pointer",
-            borderBottom: "1px solid #eee",
-            "&:hover": { backgroundColor: "#f5f5f5" }
-          }}
-        >
-          <Typography fontWeight={600} fontSize="0.9rem">
-            #{i + 1} · {hit.metadata?.title ?? "Untitled"}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
+      {hits?.map((hit, i) => {
+        const id = hit.metadata?.id;
+        const selected = id !== undefined && `${id}` === `${currentLogEntryId}`;
+        return (
+          <Stack
+            key={id ?? i}
+            id={`ai-search-result-${id ?? i}`}
+            ref={selected ? selectedRef : null}
+            onClick={() => id && navigateToEntry(id)}
+            aria-current={selected ? "true" : undefined}
+            p={2}
+            gap={0.5}
             sx={{
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical"
+              cursor: "pointer",
+              borderBottom: "1px solid #eee",
+              backgroundColor: selected ? "#0099dc24" : "inherit",
+              "&:hover": {
+                backgroundColor: selected ? "#0099dc24" : "#f5f5f5"
+              }
             }}
           >
-            {hit.content}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {hit.metadata?.owner}
-            {formatDate(hit.metadata?.createdDate) &&
-              ` • ${formatDate(hit.metadata.createdDate)}`}
-          </Typography>
-        </Stack>
-      ))}
+            <Typography
+              fontWeight={600}
+              fontSize="0.9rem"
+            >
+              #{i + 1} · {hit.metadata?.title ?? "Untitled"}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical"
+              }}
+            >
+              {hit.content}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              {hit.metadata?.owner}
+              {formatDate(hit.metadata?.createdDate) &&
+                ` • ${formatDate(hit.metadata.createdDate)}`}
+            </Typography>
+          </Stack>
+        );
+      })}
     </Stack>
   );
 };

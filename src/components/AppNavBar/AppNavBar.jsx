@@ -46,7 +46,7 @@ import { toggleSortOrder } from "features/searchPageParamsReducer";
 import { theme } from "src/config/theme";
 import { useOnPage } from "src/hooks/onPage";
 import { useEnhancedSearchParams } from "src/hooks/useEnhancedSearchParams";
-import customization from "src/config/customization";
+import customization, { isAiSearchEnabled } from "src/config/customization";
 
 const getFieldCount = (searchParams) => {
   let fieldCount = 0;
@@ -68,6 +68,9 @@ const AppNavBar = ({ advancedSearchOpen, setAdvancedSearchOpen }) => {
   const { searchParams } = useEnhancedSearchParams();
   const { setShowLogout } = useShowLogout();
   const { onHomePage, onCreatePage } = useOnPage();
+
+  // the search mode toggle under the search box needs a taller bar
+  const hasSearchModeToggle = onHomePage && isAiSearchEnabled();
 
   const toggleSort = () => {
     dispatch(toggleSortOrder());
@@ -92,9 +95,9 @@ const AppNavBar = ({ advancedSearchOpen, setAdvancedSearchOpen }) => {
             ? "auto 1.25fr auto 2fr"
             : "auto 1fr auto",
           gridTemplateRows: "1fr",
-           minHeight: "70px",
-           height: "auto",
-            padding: "14px 0 18px",
+          ...(hasSearchModeToggle
+            ? { minHeight: "70px", height: "auto", padding: "14px 0 18px" }
+            : { height: "70px" }),
           [theme.breakpoints.down("md")]: {
             height: "auto",
             display: "flex",
@@ -132,7 +135,13 @@ const AppNavBar = ({ advancedSearchOpen, setAdvancedSearchOpen }) => {
               >
                 <SearchBar
                   actions={
-                    <Box sx={{ display: "flex" }}>
+                    <Box
+                      sx={
+                        hasSearchModeToggle
+                          ? { display: "flex" }
+                          : { minWidth: "100px", flex: 1 }
+                      }
+                    >
                       <IconButton
                         sx={{
                           marginRight: "10px",
@@ -155,15 +164,15 @@ const AppNavBar = ({ advancedSearchOpen, setAdvancedSearchOpen }) => {
                             <FilterAltIcon sx={{ color: "#616161" }} />
                           </Badge>
                         </Tooltip>
-                  </IconButton>
+                      </IconButton>
 
-                  <SortToggleButton
-                    label="create date"
-                    onClick={toggleSort}
-                  />
-                </Box>
-              }
-            />
+                      <SortToggleButton
+                        label="create date"
+                        onClick={toggleSort}
+                      />
+                    </Box>
+                  }
+                />
               </Stack>
             </nav>
             <Divider
@@ -175,7 +184,7 @@ const AppNavBar = ({ advancedSearchOpen, setAdvancedSearchOpen }) => {
         <Stack
           flexDirection="row"
           justifyContent="space-between"
-          alignItems="flex-start"
+          alignItems={hasSearchModeToggle ? "flex-start" : "center"}
           width="100%"
           height="100%"
           px={5}
