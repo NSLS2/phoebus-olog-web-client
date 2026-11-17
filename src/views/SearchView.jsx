@@ -3,10 +3,7 @@ import { useParams } from "react-router-dom";
 import LogDetailsContainer from "src/components/log/LogDetails/LogDetailsContainer";
 import { SearchResults } from "components/search";
 import { AISearchResults } from "components/search/AISearchResults";
-import {
-  isAIMode,
-  useSearchMode
-} from "features/searchModeReducer";
+import { isAIMode, useSearchMode } from "features/searchModeReducer";
 
 const ContentView = styled(Box)(({ theme }) => ({
   display: "grid",
