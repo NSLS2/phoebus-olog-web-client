@@ -10,7 +10,7 @@ import { useSearchMode } from "features/searchModeReducer";
 
 const AISearch = () => {
   const dispatch = useDispatch();
-  const { aiQuery, setAiQuery } = useSearchMode();
+  const { aiQuery, setAiQuery, dismissIntro } = useSearchMode();
   const { control, handleSubmit, setValue, getValues, watch } = useForm({
     defaultValues: { question: aiQuery }
   });
@@ -25,6 +25,9 @@ const AISearch = () => {
   const onSubmit = () => {
     const question = (getValues().question ?? "").trim();
     setValue("question", question);
+    if (question) {
+      dismissIntro();
+    }
     if (question && question === aiQuery) {
       // asking the same question again runs the search again
       dispatch(ologApi.util.invalidateTags([TagTypes.AiSearch]));

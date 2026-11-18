@@ -6,7 +6,7 @@ import {
   Stack,
   Typography
 } from "@mui/material";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link as RouterLink, useLocation, useParams } from "react-router-dom";
 import {
   aiErrorMessage,
   isRetryable,
@@ -16,7 +16,6 @@ import {
 const formatDate = (ms) => (ms ? new Date(Number(ms)).toLocaleString() : null);
 
 export const AISearchResults = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { id: currentLogEntryId } = useParams();
   const { aiQuery, search, hits } = useAiSearch();
@@ -27,9 +26,6 @@ export const AISearchResults = () => {
   useEffect(() => {
     selectedRef.current?.scrollIntoView?.({ block: "nearest" });
   }, [currentLogEntryId, hits]);
-
-  const navigateToEntry = (logId) =>
-    navigate(`/logs/${logId}${location.search}`);
 
   if (!aiQuery) {
     return (
@@ -85,22 +81,32 @@ export const AISearchResults = () => {
 
       {hits?.map((hit, i) => {
         const id = hit.metadata?.id;
-        const selected = id !== undefined && `${id}` === `${currentLogEntryId}`;
+        const hasEntry = id !== undefined && id !== null;
+        const selected = hasEntry && `${id}` === `${currentLogEntryId}`;
+        // a real link, so a hit can be reached and opened from the keyboard
+        const linkProps = hasEntry
+          ? { component: RouterLink, to: `/logs/${id}${location.search}` }
+          : {};
         return (
           <Stack
             key={id ?? i}
             id={`ai-search-result-${id ?? i}`}
             ref={selected ? selectedRef : null}
-            onClick={() => id && navigateToEntry(id)}
             aria-current={selected ? "true" : undefined}
+            {...linkProps}
             p={2}
             gap={0.5}
             sx={{
-              cursor: "pointer",
+              color: "inherit",
+              textDecoration: "none",
               borderBottom: "1px solid #eee",
               backgroundColor: selected ? "#0099dc24" : "inherit",
               "&:hover": {
                 backgroundColor: selected ? "#0099dc24" : "#f5f5f5"
+              },
+              "&:focus-visible": {
+                outline: "2px solid #0099dc",
+                outlineOffset: "-2px"
               }
             }}
           >

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Stack, Typography } from "@mui/material";
 import LogDetailsWithReplies from "./LogDetailsWithReplies";
 import LogContainer from "components/log/LogContainer";
@@ -6,8 +7,15 @@ import { AIIntro } from "components/search/AIIntro";
 import { isAIMode, useSearchMode } from "features/searchModeReducer";
 
 const LogDetailsContainer = ({ id }) => {
-  const { mode, aiQuery, aiIntroDismissed, dismissIntro } = useSearchMode();
+  const { mode, aiIntroDismissed, dismissIntro } = useSearchMode();
   const isAiMode = isAIMode(mode);
+
+  // opening an entry is the end of the introduction
+  useEffect(() => {
+    if (id && isAiMode && !aiIntroDismissed) {
+      dismissIntro();
+    }
+  }, [id, isAiMode, aiIntroDismissed, dismissIntro]);
 
   let details;
   if (id) {
@@ -17,7 +25,7 @@ const LogDetailsContainer = ({ id }) => {
         renderLog={({ log }) => <LogDetailsWithReplies log={log} />}
       />
     );
-  } else if (isAiMode && !aiQuery && !aiIntroDismissed) {
+  } else if (isAiMode && !aiIntroDismissed) {
     details = <AIIntro onDismiss={dismissIntro} />;
   } else {
     details = (

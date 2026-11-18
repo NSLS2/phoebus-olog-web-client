@@ -3,7 +3,7 @@ import { ologApi } from "api/ologApi";
 import { SEARCH_MODES, useSearchMode } from "features/searchModeReducer";
 import { useEnhancedSearchParams } from "src/hooks/useEnhancedSearchParams";
 
-const NOT_RETRYABLE = [400, 401, 403, 404];
+const NOT_RETRYABLE = [400, 404];
 
 const httpStatus = (error) =>
   typeof error?.status === "number" ? error.status : error?.originalStatus;
@@ -26,6 +26,7 @@ export const aiErrorMessage = (error, subject) => {
     case 400:
       return `${subject} could not use this question, please rephrase it`;
     case 401:
+      return `Sign in to use ${subject}`;
     case 403:
       return `You are not allowed to use ${subject}`;
     case 404:
@@ -62,7 +63,10 @@ export const useAiSearch = () => {
   const search = ologApi.endpoints.aiSearch.useQuery(searchArgs, {
     skip: !aiQuery
   });
-  const hits = search.currentData?.hits;
+  // no hits while the search runs or after it failed: a failed repeat of the
+  // same question must not leave its earlier answers under the error
+  const hits =
+    search.isFetching || search.isError ? undefined : search.currentData?.hits;
 
   const analysisArgs = useMemo(
     () => ({ query: aiQuery, hits }),

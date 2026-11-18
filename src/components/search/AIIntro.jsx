@@ -22,8 +22,12 @@ const pulse = keyframes`
   100% { box-shadow: 0 0 0 0 rgba(0, 153, 220, 0); }
 `;
 
+// The demo controls are pictures of the real ones: hidden from assistive
+// technology and the tab order, so there is only one of each control to find.
 const DemoBox = ({ children }) => (
   <Box
+    aria-hidden="true"
+    inert=""
     sx={{
       display: "inline-flex",
       borderRadius: "8px",

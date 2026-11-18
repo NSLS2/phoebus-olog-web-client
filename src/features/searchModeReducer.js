@@ -14,38 +14,27 @@ export const SEARCH_MODES = {
 export const isAIMode = (mode) =>
   mode === SEARCH_MODES.AI || mode === SEARCH_MODES.AI_ANALYSIS;
 
-const INTRO_DISMISSED_KEY = "olog.aiIntroDismissed";
-
-const readIntroDismissed = () => {
-  try {
-    return window.localStorage.getItem(INTRO_DISMISSED_KEY) === "true";
-  } catch {
-    return false;
-  }
-};
-
-const storeIntroDismissed = () => {
-  try {
-    window.localStorage.setItem(INTRO_DISMISSED_KEY, "true");
-  } catch {
-    // storage is not available: the dismissal lasts until the page reloads
-  }
-};
+// A page opened with a question in its URL (reload, shared link) is already
+// past the introduction.
+const openedWithQuestion = () =>
+  new URLSearchParams(window.location.search).has(AI_PARAMS.QUERY);
 
 export const searchModeSlice = createSlice({
   name: "searchMode",
-  initialState: () => ({ aiIntroDismissed: readIntroDismissed() }),
+  initialState: () => ({ aiIntroDismissed: openedWithQuestion() }),
   reducers: {
-    dismissAiIntro: (state) => ({ ...state, aiIntroDismissed: true })
+    dismissAiIntro: (state) => ({ ...state, aiIntroDismissed: true }),
+    showAiIntro: (state) => ({ ...state, aiIntroDismissed: false })
   }
 });
 
-export const { dismissAiIntro } = searchModeSlice.actions;
+export const { dismissAiIntro, showAiIntro } = searchModeSlice.actions;
 
 /**
  * The search mode, the AI question and the analysis switch live in the URL
  * (see AI_PARAMS), like the search filters do, so they survive a reload, a
- * shared link and the Back button. Only the intro dismissal is in the store.
+ * shared link and the Back button. Only the intro dismissal is in the store:
+ * the intro comes back each time the search mode is switched.
  */
 export const useSearchMode = () => {
   const dispatch = useDispatch();
@@ -79,15 +68,17 @@ export const useSearchMode = () => {
     [setParams]
   );
 
-  const dismissIntro = useCallback(() => {
-    storeIntroDismissed();
-    dispatch(dismissAiIntro());
-  }, [dispatch]);
+  const dismissIntro = useCallback(
+    () => dispatch(dismissAiIntro()),
+    [dispatch]
+  );
 
   const setMode = useCallback(
-    (newMode) =>
-      updateParams({ [AI_PARAMS.MODE]: isAIMode(newMode) ? "ai" : null }),
-    [updateParams]
+    (newMode) => {
+      dispatch(showAiIntro());
+      updateParams({ [AI_PARAMS.MODE]: isAIMode(newMode) ? "ai" : null });
+    },
+    [dispatch, updateParams]
   );
 
   const toggleAnalysis = useCallback(
@@ -100,14 +91,9 @@ export const useSearchMode = () => {
   );
 
   const setAiQuery = useCallback(
-    (question) => {
-      const trimmed = (question ?? "").trim();
-      if (trimmed) {
-        dismissIntro();
-      }
-      updateParams({ [AI_PARAMS.QUERY]: trimmed || null });
-    },
-    [dismissIntro, updateParams]
+    (question) =>
+      updateParams({ [AI_PARAMS.QUERY]: (question ?? "").trim() || null }),
+    [updateParams]
   );
 
   return {

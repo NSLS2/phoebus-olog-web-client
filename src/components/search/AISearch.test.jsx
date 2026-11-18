@@ -9,12 +9,19 @@ import {
   within
 } from "@testing-library/react";
 import { Provider } from "react-redux";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useParams
+} from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import SearchBar from "components/search/SearchBar";
 import { AISearchResults } from "components/search/AISearchResults";
-import { AIAnalysisPanel } from "components/search/AIAnalysisPanel";
+import LogDetailsContainer from "components/log/LogDetails/LogDetailsContainer";
 import { aiErrorMessage } from "components/search/useAiSearch";
+import { ologApi } from "api/ologApi";
 import customization from "config/customization";
 import { setupStore } from "features/store";
 import { isAIMode, useSearchMode } from "features/searchModeReducer";
@@ -52,7 +59,9 @@ const mockAi = ({ search = searchOk, analyze = analyzeOk } = {}) => {
       const body = await request.json();
       calls.analyze.push(body);
       return analyze(body, calls.analyze.length);
-    })
+    }),
+    // replies of an opened entry
+    http.get("*/logs", () => HttpResponse.json([]))
   );
   return calls;
 };
@@ -66,15 +75,12 @@ const analyzed = (calls) =>
 const Page = () => {
   const { mode } = useSearchMode();
   const location = useLocation();
+  const { id } = useParams();
   return (
     <>
       <SearchBar />
-      {isAIMode(mode) && (
-        <>
-          <AISearchResults />
-          <AIAnalysisPanel />
-        </>
-      )}
+      {isAIMode(mode) && <AISearchResults />}
+      <LogDetailsContainer id={id} />
       <output data-testid="location">
         {location.pathname + location.search}
       </output>
@@ -82,9 +88,10 @@ const Page = () => {
   );
 };
 
-const renderApp = (url = "/") =>
+const renderApp = (url = "/") => {
+  const store = setupStore({});
   render(
-    <Provider store={setupStore({})}>
+    <Provider store={store}>
       <ThemeProvider theme={theme}>
         <MemoryRouter initialEntries={[url]}>
           <Routes>
@@ -101,6 +108,8 @@ const renderApp = (url = "/") =>
       </ThemeProvider>
     </Provider>
   );
+  return store;
+};
 
 const AI = "/?searchMode=ai";
 const AI_WITH_ANALYSIS = "/?searchMode=ai&aiAnalysis=true";
@@ -119,7 +128,6 @@ const nextTick = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 afterEach(() => {
   cleanup();
-  window.localStorage.clear();
   customization.AI_SEARCH_ENABLED = undefined;
 });
 
@@ -156,7 +164,6 @@ describe("AI search", () => {
     expect(location()).toBe("/?searchMode=ai&aiQuery=alarm");
     expect(calls.search.map((body) => body.query)).toEqual(["alarm"]);
     expect(calls.analyze).toHaveLength(0);
-    expect(window.localStorage.getItem("olog.aiIntroDismissed")).toBe("true");
 
     fireEvent.click(analysisSwitch());
     await screen.findByText(/Analysis of "alarm" from 11,12/);
@@ -323,6 +330,109 @@ describe("AI search", () => {
     expect(row(11).getAttribute("aria-current")).toBeNull();
     expect(analysisPanel()).not.toBeNull();
   });
+
+  test("the intro is shown on every entry to AI mode until it is dismissed", async () => {
+    mockAi();
+    const intro = () => screen.queryByText(/Introducing Olog/);
+    const enterAiMode = () =>
+      fireEvent.click(screen.getByRole("button", { name: "ai search" }));
+    const leaveAiMode = () =>
+      fireEvent.click(screen.getByRole("button", { name: "query search" }));
+    renderApp("/");
+    expect(intro()).toBeNull();
+
+    enterAiMode();
+    expect(intro()).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "dismiss introduction" })
+    );
+    expect(intro()).toBeNull();
+
+    leaveAiMode();
+    enterAiMode();
+    expect(intro()).not.toBeNull();
+    ask("alarm");
+    await screen.findByText(/Kicker timing/);
+    expect(intro()).toBeNull();
+
+    // back in AI mode the question is kept and the intro is shown again
+    leaveAiMode();
+    enterAiMode();
+    expect(questionBox().value).toBe("alarm");
+    expect(intro()).not.toBeNull();
+
+    fireEvent.click(await screen.findByRole("link", { name: /Kicker timing/ }));
+    await waitFor(() => expect(location()).toMatch(/^\/logs\/12\?/));
+    expect(intro()).toBeNull();
+  });
+
+  test("a page opened with a question does not start with the intro", () => {
+    window.history.replaceState(null, "", "/?searchMode=ai&aiQuery=alarm");
+    try {
+      expect(setupStore({}).getState().searchMode.aiIntroDismissed).toBe(true);
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
+    expect(setupStore({}).getState().searchMode.aiIntroDismissed).toBe(false);
+  });
+
+  test("a result is a link to its entry", async () => {
+    mockAi();
+    renderApp(`${AI}&aiQuery=alarm`);
+    await screen.findByText(/Kicker timing/);
+
+    const link = screen.getByRole("link", { name: /Kicker timing/ });
+    expect(link.getAttribute("href")).toBe(
+      "/logs/12?searchMode=ai&aiQuery=alarm"
+    );
+
+    fireEvent.click(link);
+
+    await waitFor(() =>
+      expect(location()).toBe("/logs/12?searchMode=ai&aiQuery=alarm")
+    );
+  });
+
+  test("a failed repeat of the same question hides its earlier answers", async () => {
+    mockAi({
+      search: (body, attempt) =>
+        attempt === 1 ? searchOk(body) : serverError()
+    });
+    renderApp(`${AI_WITH_ANALYSIS}&aiQuery=alarm`);
+    await screen.findByText(/Analysis of "alarm"/);
+
+    ask("alarm");
+    await screen.findByText(/AI search failed/);
+
+    expect(screen.queryByText(/Fill pattern alarm/)).toBeNull();
+    expect(analysisPanel()).toBeNull();
+  });
+
+  test("a search refused before signing in is asked again after signing in", async () => {
+    let signedIn = false;
+    const calls = mockAi({
+      search: (body) =>
+        signedIn ? searchOk(body) : new HttpResponse(null, { status: 401 })
+    });
+    server.use(
+      http.post("*/login", () => {
+        signedIn = true;
+        return HttpResponse.json({ userName: "jsmith", roles: [] });
+      })
+    );
+    const store = renderApp(`${AI}&aiQuery=alarm`);
+
+    await screen.findByText(/Sign in to use AI search/);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+
+    store.dispatch(
+      ologApi.endpoints.login.initiate({ username: "jsmith", password: "x" })
+    );
+
+    await screen.findByText(/Fill pattern alarm/);
+    expect(screen.queryByText(/Sign in to use AI search/)).toBeNull();
+    expect(calls.search).toHaveLength(2);
+  });
 });
 
 describe("aiErrorMessage", () => {
@@ -330,6 +440,7 @@ describe("aiErrorMessage", () => {
     [{ status: "TIMEOUT_ERROR" }, /timed out/],
     [{ status: "FETCH_ERROR" }, /cannot be reached/],
     [{ status: 400 }, /rephrase/],
+    [{ status: 401 }, /Sign in/],
     [{ status: 403 }, /not allowed/],
     [{ status: "PARSING_ERROR", originalStatus: 404 }, /not available/],
     [{ status: 502 }, /returned an error/]
