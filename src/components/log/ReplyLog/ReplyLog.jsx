@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Backdrop, CircularProgress } from "@mui/material";
 import { EntryEditor } from "../EntryEditor";
@@ -17,6 +17,7 @@ const ReplyLog = ({ log }) => {
   const [replyInProgress, setReplyInProgress] = useState(false);
   const [replyLog] = ologApi.endpoints.createLog.useMutation();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { enqueueSnackbar } = useCustomSnackbar();
 
   const form = useForm({
@@ -44,7 +45,7 @@ const ReplyLog = ({ log }) => {
       .unwrap()
       .then((data) => {
         setReplyInProgress(false);
-        navigate(`/logs/${data.id}`);
+        navigate(`/logs/${data.id}${search}`);
       })
       .catch((error) => {
         setReplyInProgress(false);

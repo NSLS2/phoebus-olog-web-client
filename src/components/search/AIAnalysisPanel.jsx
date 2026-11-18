@@ -88,7 +88,7 @@ export const AIAnalysisPanel = () => {
           {aiErrorMessage(error, "AI analysis")}
         </Alert>
       )}
-      {analysisHtml && !isFetching && (
+      {analysisHtml && !isFetching && !error && (
         <Box
           onClick={onAnalysisClick}
           sx={{ fontSize: "0.9rem", "& p": { my: 0.5 } }}

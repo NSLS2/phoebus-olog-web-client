@@ -226,12 +226,14 @@ const ologApi = createApi({
 
 export const TagTypes = {
   GetLogs: "GetLogs",
-  AiSearch: "AiSearch"
+  AiSearch: "AiSearch",
+  AiAnalysis: "AiAnalysis"
 };
 
-// the AI endpoints need a signed-in user, so a search is asked again when the
-// user signs in or out (and only if that succeeded)
-const refreshAiSearch = (result, error) => (error ? [] : [TagTypes.AiSearch]);
+// the AI endpoints need a signed-in user, so nothing they returned is kept
+// when the user signs in or out (and only if that succeeded)
+const refreshAi = (result, error) =>
+  error ? [] : [TagTypes.AiSearch, TagTypes.AiAnalysis];
 
 const enhancedApiWithTags = ologApi.enhanceEndpoints({
   addTagTypes: Object.values(TagTypes),
@@ -242,11 +244,14 @@ const enhancedApiWithTags = ologApi.enhanceEndpoints({
     aiSearch: {
       providesTags: [TagTypes.AiSearch]
     },
+    aiAnalyze: {
+      providesTags: [TagTypes.AiAnalysis]
+    },
     login: {
-      invalidatesTags: refreshAiSearch
+      invalidatesTags: refreshAi
     },
     logout: {
-      invalidatesTags: refreshAiSearch
+      invalidatesTags: refreshAi
     },
     getLogGroup: {
       providesTags: [TagTypes.GetLogs]

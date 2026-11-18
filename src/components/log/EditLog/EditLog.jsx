@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Backdrop, CircularProgress } from "@mui/material";
 import { EntryEditor } from "../EntryEditor";
@@ -9,6 +9,7 @@ import { useCustomSnackbar } from "src/hooks/useCustomSnackbar";
 
 const EditLog = ({ log }) => {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { updatedLogEntryId, setUpdatedLogEntryId } = useWebSockets();
   const { enqueueSnackbar } = useCustomSnackbar();
 
@@ -66,7 +67,7 @@ const EditLog = ({ log }) => {
       .unwrap()
       .then((data) => {
         setEditInProgress(false);
-        navigate(`/logs/${data.id}`);
+        navigate(`/logs/${data.id}${search}`);
       })
       .catch((error) => {
         setUpdatedLogEntryId(null);

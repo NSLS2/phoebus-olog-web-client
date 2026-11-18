@@ -433,6 +433,37 @@ describe("AI search", () => {
     expect(screen.queryByText(/Sign in to use AI search/)).toBeNull();
     expect(calls.search).toHaveLength(2);
   });
+
+  test("asking the same question again keeps the analysis of unchanged hits", async () => {
+    const calls = mockAi();
+    renderApp(`${AI_WITH_ANALYSIS}&aiQuery=alarm`);
+    await screen.findByText(/Analysis of "alarm"/);
+
+    ask("alarm");
+    await waitFor(() => expect(calls.search).toHaveLength(2));
+    await screen.findByText(/Analysis of "alarm"/);
+
+    expect(calls.analyze).toHaveLength(1);
+  });
+
+  test("a change of user asks for the search and the analysis again", async () => {
+    const calls = mockAi();
+    server.use(
+      http.post("*/login", () =>
+        HttpResponse.json({ userName: "mdoe", roles: [] })
+      )
+    );
+    const store = renderApp(`${AI_WITH_ANALYSIS}&aiQuery=alarm`);
+    await screen.findByText(/Analysis of "alarm"/);
+
+    store.dispatch(
+      ologApi.endpoints.login.initiate({ username: "mdoe", password: "x" })
+    );
+
+    await waitFor(() => expect(calls.analyze).toHaveLength(2));
+    await screen.findByText(/Analysis of "alarm"/);
+    expect(calls.search).toHaveLength(2);
+  });
 });
 
 describe("aiErrorMessage", () => {

@@ -1,11 +1,13 @@
 import { IconButton, Stack, Tooltip } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ReplyIcon from "@mui/icons-material/Reply";
 import { ContextMenu } from "./ContextMenu";
 import { useUser } from "features/authSlice";
 
 const LogDetailActionButton = ({ log }) => {
   const user = useUser();
+  // keep the search in the URL, so sending the reply returns to it
+  const { search } = useLocation();
 
   return (
     <Stack
@@ -17,7 +19,7 @@ const LogDetailActionButton = ({ log }) => {
       {user && (
         <IconButton
           component={Link}
-          to={`/logs/${log.id}/reply`}
+          to={`/logs/${log.id}/reply${search}`}
           size="small"
           color="primary"
         >
