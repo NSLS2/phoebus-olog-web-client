@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -8,6 +8,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import { Stack } from "@mui/material";
 
 export const ContextMenu = ({ log }) => {
+  // keep the search in the URL, so saving the edit returns to it
+  const { search } = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -45,7 +47,7 @@ export const ContextMenu = ({ log }) => {
       >
         <MenuItem
           component={Link}
-          to={`/logs/${log.id}/edit`}
+          to={`/logs/${log.id}/edit${search}`}
           sx={{ padding: "4px 12px 4px 8px", fontSize: ".8rem" }}
           onClick={handleClose}
         >

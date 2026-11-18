@@ -26,6 +26,14 @@ export function ologClientInfoHeader() {
   };
 }
 
+// The LLM calls behind the AI endpoints take seconds and can hang. These are a
+// safety net for the user; the service should enforce its own, shorter limits.
+const AI_SEARCH_TIMEOUT_MS = 60_000;
+const AI_ANALYSIS_TIMEOUT_MS = 120_000;
+// Keep AI answers while the user looks elsewhere (switching search mode or the
+// analysis switch), so that coming back does not repeat the LLM calls.
+const AI_CACHE_SECONDS = 300;
+
 const ologApi = createApi({
   reducerPath: "ologApi",
   baseQuery: fetchBaseQuery({
@@ -76,28 +84,44 @@ const ologApi = createApi({
       }
     }),
     aiSearch: builder.query({
-      query: ({ query, start, end, logbooks, tags, level, owner, title, desc }) => ({
+      query: ({
+        query,
+        start,
+        end,
+        logbooks,
+        tags,
+        level,
+        owner,
+        title,
+        desc
+      }) => ({
         url: "/ai/search/semantic",
         method: "POST",
+        timeout: AI_SEARCH_TIMEOUT_MS,
         body: {
           query,
           createdDateFrom: start ?? null,
           createdDateTo: end ?? null,
           logbooks: logbooks ?? [],
           tags: tags ?? [],
-          levels: level ?? [],       // URL param is "level", backend field is "levels"
+          levels: level ?? [], // URL param is "level", backend field is "levels"
           owner: owner ?? null,
           title: title ?? null,
           desc: desc ?? null
         }
-      })
+      }),
+      keepUnusedDataFor: AI_CACHE_SECONDS
     }),
-    aiAnalyze: builder.mutation({
+    // A query, not a mutation: the answer belongs to one question and one
+    // list of hits, so it is cached and looked up by exactly those.
+    aiAnalyze: builder.query({
       query: ({ query, hits }) => ({
         url: "/ai/search/analyze",
         method: "POST",
+        timeout: AI_ANALYSIS_TIMEOUT_MS,
         body: { query, hits }
-      })
+      }),
+      keepUnusedDataFor: AI_CACHE_SECONDS
     }),
     getTags: builder.query({
       query: () => ({
@@ -201,14 +225,33 @@ const ologApi = createApi({
 });
 
 export const TagTypes = {
-  GetLogs: "GetLogs"
+  GetLogs: "GetLogs",
+  AiSearch: "AiSearch",
+  AiAnalysis: "AiAnalysis"
 };
+
+// the AI endpoints need a signed-in user, so nothing they returned is kept
+// when the user signs in or out (and only if that succeeded)
+const refreshAi = (result, error) =>
+  error ? [] : [TagTypes.AiSearch, TagTypes.AiAnalysis];
 
 const enhancedApiWithTags = ologApi.enhanceEndpoints({
   addTagTypes: Object.values(TagTypes),
   endpoints: {
     searchLogs: {
       providesTags: [TagTypes.GetLogs]
+    },
+    aiSearch: {
+      providesTags: [TagTypes.AiSearch]
+    },
+    aiAnalyze: {
+      providesTags: [TagTypes.AiAnalysis]
+    },
+    login: {
+      invalidatesTags: refreshAi
+    },
+    logout: {
+      invalidatesTags: refreshAi
     },
     getLogGroup: {
       providesTags: [TagTypes.GetLogs]

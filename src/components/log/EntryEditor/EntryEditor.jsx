@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -51,6 +51,8 @@ export const EntryEditor = ({
 }) => {
   const topElem = useRef();
   const navigate = useNavigate();
+  // Cancel goes home with the search the editor was opened from
+  const { search } = useLocation();
   const { control, handleSubmit, formState } = form;
 
   const { isAuthenticated } = useIsAuthenticated();
@@ -228,7 +230,7 @@ export const EntryEditor = ({
         >
           <Button
             variant="outlined"
-            onClick={() => navigate("/")}
+            onClick={() => navigate({ pathname: "/", search })}
           >
             Cancel
           </Button>

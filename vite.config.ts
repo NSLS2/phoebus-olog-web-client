@@ -36,6 +36,8 @@ export default defineConfig(({ mode }) => {
     test: {
       setupFiles: "./src/setupTests.ts",
       environment: "jsdom",
+      // Node's fetch needs an absolute URL; requests are answered by msw
+      env: { VITE_APP_BACKEND_URL: "http://localhost:8080/Olog" },
       coverage: {
         reporter: ["lcov", "text"]
       },

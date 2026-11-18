@@ -8,7 +8,7 @@ export const SearchModeToggle = ({ mode, onChange }) => (
     exclusive
     aria-label="search mode"
     onChange={(_, newMode) => {
-      if (newMode !== null) onChange(newMode);
+      if (newMode !== null) {onChange(newMode);}
     }}
     sx={{
       "& .MuiToggleButton-root": {
@@ -16,18 +16,24 @@ export const SearchModeToggle = ({ mode, onChange }) => (
         gap: 0.5,
         padding: "2px 12px",
         fontSize: "1.0rem",
-        color: "grey.600",
+        color: "grey.600"
       },
       "& .MuiToggleButton-root.Mui-selected": {
         color: "primary.main",
-        fontWeight: 600,
+        fontWeight: 600
       }
     }}
   >
-    <ToggleButton value={SEARCH_MODES.QUERY} aria-label="query search">
+    <ToggleButton
+      value={SEARCH_MODES.QUERY}
+      aria-label="query search"
+    >
       Query search
     </ToggleButton>
-    <ToggleButton value={SEARCH_MODES.AI} aria-label="ai search">
+    <ToggleButton
+      value={SEARCH_MODES.AI}
+      aria-label="ai search"
+    >
       <AutoAwesomeIcon sx={{ fontSize: "16px" }} />
       AI search
     </ToggleButton>

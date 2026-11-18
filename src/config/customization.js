@@ -65,7 +65,16 @@ let customization = {
   VERSION: import.meta.env.VITE_APP_VERSION ?? packageInfo.version,
   SWAGGER_URL: import.meta.env.VITE_APP_SWAGGER_URL,
 
-  APP_TITLE: import.meta.env.VITE_APP_APP_TITLE ?? "ESS Logbook"
+  APP_TITLE: import.meta.env.VITE_APP_APP_TITLE ?? "ESS Logbook",
+
+  /**
+   * Set to "true" to offer AI search. Requires an Olog service that provides the /ai endpoints.
+   * Kept as the raw string because env.sh replaces it in the built files at container start.
+   */
+  AI_SEARCH_ENABLED: import.meta.env.VITE_APP_AI_SEARCH_ENABLED
 };
+
+export const isAiSearchEnabled = () =>
+  String(customization.AI_SEARCH_ENABLED).trim().toLowerCase() === "true";
 
 export default customization;

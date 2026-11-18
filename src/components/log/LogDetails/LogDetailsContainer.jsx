@@ -1,42 +1,48 @@
+import { useEffect } from "react";
 import { Stack, Typography } from "@mui/material";
-import { AIAnalysisPanel } from "components/search/AIAnalysisPanel";
 import LogDetailsWithReplies from "./LogDetailsWithReplies";
 import LogContainer from "components/log/LogContainer";
-import { useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { AIAnalysisPanel } from "components/search/AIAnalysisPanel";
 import { AIIntro } from "components/search/AIIntro";
-import {
-  isAIMode,
-  dismissAiIntro,
-  useSearchMode
-} from "features/searchModeReducer";
+import { isAIMode, useSearchMode } from "features/searchModeReducer";
 
 const LogDetailsContainer = ({ id }) => {
-  const dispatch = useDispatch();
-  const { mode, aiIntroDismissed } = useSearchMode();
+  const { mode, aiIntroDismissed, dismissIntro } = useSearchMode();
   const isAiMode = isAIMode(mode);
 
+  // opening an entry is the end of the introduction
   useEffect(() => {
     if (id && isAiMode && !aiIntroDismissed) {
-      dispatch(dismissAiIntro());
+      dismissIntro();
     }
-  }, [id, isAiMode, aiIntroDismissed, dispatch]);
+  }, [id, isAiMode, aiIntroDismissed, dismissIntro]);
+
+  let details;
+  if (id) {
+    details = (
+      <LogContainer
+        id={id}
+        renderLog={({ log }) => <LogDetailsWithReplies log={log} />}
+      />
+    );
+  } else if (isAiMode && !aiIntroDismissed) {
+    details = <AIIntro onDismiss={dismissIntro} />;
+  } else {
+    details = (
+      <Stack p={4}>
+        <Typography>Select a log to view its details</Typography>
+      </Stack>
+    );
+  }
+
+  if (!isAiMode) {
+    return details;
+  }
 
   return (
     <Stack sx={{ minHeight: 0, minWidth: 0, overflow: "auto" }}>
-      {isAiMode && <AIAnalysisPanel />}
-      {id ? (
-        <LogContainer
-          id={id}
-          renderLog={({ log }) => <LogDetailsWithReplies log={log} />}
-        />
-      ) : isAiMode && !aiIntroDismissed ? (
-        <AIIntro onDismiss={() => dispatch(dismissAiIntro())} />
-      ) : (
-        <Stack p={4}>
-          <Typography>Select a log to view its details</Typography>
-        </Stack>
-      )}
+      <AIAnalysisPanel />
+      {details}
     </Stack>
   );
 };
